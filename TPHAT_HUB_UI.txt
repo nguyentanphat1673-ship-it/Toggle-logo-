@@ -2,7 +2,7 @@ local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
-local ContentProvider = game:GetService("ContentProvider") -- Dịch vụ tải trước dữ liệu
+local ContentProvider = game:GetService("ContentProvider") 
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -29,7 +29,6 @@ HubGui.ResetOnSpawn = false
 HubGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 HubGui.Parent = CoreGui
 
--- KHỞI TẠO VÀ TỐI ƯU HÓA HỆ THỐNG SOUND EFFECTS (SỬA LỖI TRỄ)
 local SoundFolder = Instance.new("Folder")
 SoundFolder.Name = "TphatHub_SFX"
 SoundFolder.Parent = HubGui
@@ -46,16 +45,14 @@ LeaveHubSFX.Volume = 1
 LeaveHubSFX.SoundId = getcustomasset("LeaveHub.mp3")
 LeaveHubSFX.Parent = SoundFolder
 
--- Ép Roblox nạp sẵn âm thanh vào bộ nhớ RAM trước khi sử dụng để loại bỏ delay 1s
 pcall(function()
 	ContentProvider:PreloadAsync({TabPickSFX, LeaveHubSFX})
 end)
 
--- Hàm tối ưu hóa để phát âm thanh ngay lập tức không độ trễ
 local function playSoundInstant(soundInstance)
 	if soundInstance and soundInstance.SoundId ~= "" then
 		task.spawn(function()
-			-- Tạo bản sao nhanh để nếu bấm liên tục âm thanh vẫn không bị ngắt hoặc trễ
+			
 			local sfxClone = soundInstance:Clone()
 			sfxClone.Parent = SoundFolder
 			sfxClone:Play()
