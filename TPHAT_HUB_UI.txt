@@ -1,0 +1,835 @@
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local ContentProvider = game:GetService("ContentProvider") -- Dịch vụ tải trước dữ liệu
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local ScreenSize = Camera.ViewportSize
+
+local BaseWidth = 540
+local BaseHeight = 315
+
+local AccentColor = Color3.fromRGB(255, 170, 0)
+local SecondaryColor = Color3.fromRGB(255, 85, 0)
+local DarkAccent = Color3.fromRGB(40, 30, 10)
+
+pcall(function()
+	if readfile and isfile and isfile("background.png") then
+		AccentColor = Color3.fromRGB(240, 180, 40)
+		SecondaryColor = Color3.fromRGB(190, 110, 20)
+		DarkAccent = Color3.fromRGB(50, 40, 25)
+	end
+end)
+
+local HubGui = Instance.new("ScreenGui")
+HubGui.Name = "TphatHub_Premium"
+HubGui.ResetOnSpawn = false
+HubGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+HubGui.Parent = CoreGui
+
+-- KHỞI TẠO VÀ TỐI ƯU HÓA HỆ THỐNG SOUND EFFECTS (SỬA LỖI TRỄ)
+local SoundFolder = Instance.new("Folder")
+SoundFolder.Name = "TphatHub_SFX"
+SoundFolder.Parent = HubGui
+
+local TabPickSFX = Instance.new("Sound")
+TabPickSFX.Name = "TabPick"
+TabPickSFX.Volume = 1
+TabPickSFX.SoundId = getcustomasset("TabPick.mp3")
+TabPickSFX.Parent = SoundFolder
+
+local LeaveHubSFX = Instance.new("Sound")
+LeaveHubSFX.Name = "LeaveHub"
+LeaveHubSFX.Volume = 1
+LeaveHubSFX.SoundId = getcustomasset("LeaveHub.mp3")
+LeaveHubSFX.Parent = SoundFolder
+
+-- Ép Roblox nạp sẵn âm thanh vào bộ nhớ RAM trước khi sử dụng để loại bỏ delay 1s
+pcall(function()
+	ContentProvider:PreloadAsync({TabPickSFX, LeaveHubSFX})
+end)
+
+-- Hàm tối ưu hóa để phát âm thanh ngay lập tức không độ trễ
+local function playSoundInstant(soundInstance)
+	if soundInstance and soundInstance.SoundId ~= "" then
+		task.spawn(function()
+			-- Tạo bản sao nhanh để nếu bấm liên tục âm thanh vẫn không bị ngắt hoặc trễ
+			local sfxClone = soundInstance:Clone()
+			sfxClone.Parent = SoundFolder
+			sfxClone:Play()
+			sfxClone.Ended:Connect(function()
+				sfxClone:Destroy()
+			end)
+		end)
+	end
+end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.ClipsDescendants = true
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.Size = UDim2.new(0, BaseWidth, 0, BaseHeight)
+MainFrame.Parent = HubGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 5)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2.5
+MainStroke.Color = Color3.fromRGB(255, 255, 255)
+MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+MainStroke.Parent = MainFrame
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, AccentColor),
+	ColorSequenceKeypoint.new(0.5, SecondaryColor),
+	ColorSequenceKeypoint.new(1, AccentColor)
+})
+MainGradient.Rotation = 45
+MainGradient.Parent = MainStroke
+
+task.spawn(function()
+	while true do
+		for i = 0, 360, 2 do
+			MainGradient.Rotation = i
+			task.wait(0.03)
+		end
+	end
+end)
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 45)
+TopBar.BackgroundTransparency = 1
+TopBar.Parent = MainFrame
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(0.5, 0, 1, 0)
+TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "TPHAT HUB"
+TitleLabel.TextColor3 = Color3.fromRGB(220, 225, 235)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 22
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TopBar
+
+local TitleStroke = Instance.new("UIStroke")
+TitleStroke.Thickness = 1.5
+TitleStroke.Color = Color3.fromRGB(40, 45, 55)
+TitleStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+TitleStroke.Parent = TitleLabel
+
+local TitleGradient = Instance.new("UIGradient")
+TitleGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(240, 240, 245)),
+	ColorSequenceKeypoint.new(0.4, Color3.fromRGB(180, 185, 195)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(150, 155, 165)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 105, 115))
+})
+TitleGradient.Rotation = 90
+TitleGradient.Parent = TitleLabel
+
+local Version = Instance.new("TextLabel")
+Version.Name = "Version"
+Version.Position = UDim2.new(0.75, 0, 0, 0)
+Version.Size = UDim2.new(0.08, 0, 1, 0)
+Version.BackgroundTransparency = 1
+Version.Text = "v2.1"
+Version.TextColor3 = Color3.fromRGB(120, 125, 140)
+Version.Font = Enum.Font.SourceSansItalic
+Version.TextSize = 14
+Version.TextXAlignment = Enum.TextXAlignment.Right
+Version.Parent = TopBar
+
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Name = "MinimizeBtn"
+MinimizeBtn.Position = UDim2.new(0.85, 0, 0.2, 0)
+MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.Text = "➖"
+MinimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+MinimizeBtn.Font = Enum.Font.SourceSansBold
+MinimizeBtn.TextSize = 14
+MinimizeBtn.Parent = TopBar
+
+local CloseBtn = Instance.new("ImageButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Position = UDim2.new(0.92, 0, 0.2, 0)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Image = getcustomasset("logo0.png")
+CloseBtn.Parent = TopBar
+
+local SeparatorLine = Instance.new("Frame")
+SeparatorLine.Name = "SeparatorLine"
+SeparatorLine.Position = UDim2.new(0, 0, 0, 44)
+SeparatorLine.Size = UDim2.new(1, 0, 0, 1)
+SeparatorLine.BorderSizePixel = 0
+SeparatorLine.ZIndex = 2
+SeparatorLine.Parent = MainFrame
+
+local LineGradient = Instance.new("UIGradient")
+LineGradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, AccentColor),
+	ColorSequenceKeypoint.new(0.5, SecondaryColor),
+	ColorSequenceKeypoint.new(1, AccentColor)
+})
+LineGradient.Parent = SeparatorLine
+
+task.spawn(function()
+	while true do
+		for i = 0, 360, 1 do
+			LineGradient.Rotation = i
+			task.wait(0.02)
+		end
+	end
+end)
+
+local Container = Instance.new("Frame")
+Container.Name = "Container"
+Container.Position = UDim2.new(0, 0, 0, 45)
+Container.Size = UDim2.new(1, 0, 1, -45)
+Container.BackgroundTransparency = 1
+Container.ClipsDescendants = true
+Container.Parent = MainFrame
+
+local ContentBgImage = Instance.new("ImageLabel")
+ContentBgImage.Name = "ContentBgImage"
+ContentBgImage.Size = UDim2.new(1, 0, 1, 0)
+ContentBgImage.BackgroundTransparency = 1
+ContentBgImage.ScaleType = Enum.ScaleType.Crop
+ContentBgImage.ZIndex = 0
+ContentBgImage.Image = getcustomasset("background.png")
+ContentBgImage.Parent = Container
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0.15, 0, 1, 0)
+Sidebar.BackgroundTransparency = 1
+Sidebar.ZIndex = 1
+Sidebar.Parent = Container
+
+local SidebarLine = Instance.new("Frame")
+SidebarLine.Position = UDim2.new(1, -1, 0, 0)
+SidebarLine.Size = UDim2.new(0, 1, 1, 0)
+SidebarLine.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SidebarLine.BackgroundTransparency = 0.35
+SidebarLine.BorderSizePixel = 0
+SidebarLine.ZIndex = 2
+SidebarLine.Parent = Sidebar
+
+local TabContainer = Instance.new("ScrollingFrame")
+TabContainer.Name = "TabContainer"
+TabContainer.Size = UDim2.new(1, -1, 1, 0)
+TabContainer.BackgroundTransparency = 0.65
+TabContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+TabContainer.BorderSizePixel = 0
+TabContainer.ScrollBarThickness = 0
+TabContainer.ZIndex = 2
+TabContainer.Parent = Sidebar
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabLayout.Padding = UDim.new(0, 10)
+TabLayout.Parent = TabContainer
+
+local CenterArea = Instance.new("Frame")
+CenterArea.Name = "CenterArea"
+CenterArea.Position = UDim2.new(0.15, 6)
+CenterArea.Size = UDim2.new(0.85, -12, 1, 0)
+CenterArea.BackgroundTransparency = 1
+CenterArea.ZIndex = 1
+CenterArea.Parent = Container
+
+local FeaturedLabel = Instance.new("TextLabel")
+FeaturedLabel.Name = "FeaturedLabel"
+FeaturedLabel.Position = UDim2.new(0, 0, 0, 4)
+FeaturedLabel.Size = UDim2.new(1, 0, 0, 20)
+FeaturedLabel.BackgroundTransparency = 1
+FeaturedLabel.Text = "Featured Scripts"
+FeaturedLabel.TextColor3 = Color3.fromRGB(230, 235, 245)
+FeaturedLabel.Font = Enum.Font.SourceSansBold
+FeaturedLabel.TextSize = 14
+FeaturedLabel.TextXAlignment = Enum.TextXAlignment.Left
+FeaturedLabel.ZIndex = 2
+FeaturedLabel.Parent = CenterArea
+
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Position = UDim2.new(0, 0, 0, 28)
+ContentContainer.Size = UDim2.new(1, 0, 1, -36)
+ContentContainer.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+ContentContainer.BackgroundTransparency = 0.65
+ContentContainer.ZIndex = 2
+ContentContainer.Parent = CenterArea
+
+local ContentCorner = Instance.new("UICorner")
+ContentCorner.CornerRadius = UDim.new(0, 5)
+ContentCorner.Parent = ContentContainer
+
+local ContentStroke = Instance.new("UIStroke")
+ContentStroke.Thickness = 1
+ContentStroke.Color = Color3.fromRGB(55, 55, 65)
+ContentStroke.Parent = ContentContainer
+
+local MoveHandle = Instance.new("Frame")
+MoveHandle.Name = "MoveHandle"
+MoveHandle.AnchorPoint = Vector2.new(0.5, 1)
+MoveHandle.Position = UDim2.new(0.5, 0, 1, 0)
+MoveHandle.Size = UDim2.new(0.2, 0, 0, 4)
+MoveHandle.BackgroundColor3 = Color3.fromRGB(80, 85, 100)
+MoveHandle.BorderSizePixel = 0
+MoveHandle.ZIndex = 10
+MoveHandle.Parent = MainFrame
+
+local MoveCorner = Instance.new("UICorner")
+MoveCorner.CornerRadius = UDim.new(1, 0)
+MoveCorner.Parent = MoveHandle
+
+local ScreenGuiToggle = Instance.new("ScreenGui")
+ScreenGuiToggle.Name = "TphatHubToggle"
+ScreenGuiToggle.Parent = CoreGui
+ScreenGuiToggle.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local function applyGlobalDrag(triggerInstance)
+	local draggingHub, dragInputHub, dragStartHub, startPosHub
+	
+	triggerInstance.InputBegan:Connect(function(input)
+		if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) then
+			local mousePos = UIS:GetMouseLocation()
+			local handlePos = MainFrame.AbsolutePosition + MainFrame.AbsoluteSize - Vector2.new(25, 25)
+			if mousePos.X >= handlePos.X and mousePos.Y >= handlePos.Y then
+				return
+			end
+			
+			draggingHub = true
+			dragStartHub = input.Position
+			startPosHub = MainFrame.Position
+			
+			if triggerInstance == MoveHandle then
+				TweenService:Create(MoveHandle, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Size = UDim2.new(0.2, 0, 0, 8),
+					BackgroundColor3 = AccentColor
+				}):Play()
+			end
+			
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then 
+					draggingHub = false 
+					if triggerInstance == MoveHandle then
+						TweenService:Create(MoveHandle, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							Size = UDim2.new(0.2, 0, 0, 4),
+							BackgroundColor3 = Color3.fromRGB(80, 85, 100)
+						}):Play()
+					end
+				end
+			end)
+		end
+	end)
+	
+	triggerInstance.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then 
+			dragInputHub = input 
+		end
+	end)
+	
+	UIS.InputChanged:Connect(function(input)
+		if input == dragInputHub and draggingHub then
+			local delta = input.Position - dragStartHub
+			MainFrame.Position = UDim2.new(startPosHub.X.Scale, startPosHub.X.Offset + delta.X, startPosHub.Y.Scale, startPosHub.Y.Offset + delta.Y)
+		end
+	end)
+end
+
+applyGlobalDrag(MoveHandle)
+applyGlobalDrag(TopBar)
+applyGlobalDrag(Sidebar)
+applyGlobalDrag(CenterArea)
+
+local ResizeHandle = Instance.new("Frame")
+ResizeHandle.Name = "ResizeHandle"
+ResizeHandle.AnchorPoint = Vector2.new(1, 1)
+ResizeHandle.Position = UDim2.new(1, -3, 1, -3)
+ResizeHandle.Size = UDim2.new(0, 12, 0, 12)
+ResizeHandle.BackgroundTransparency = 1
+ResizeHandle.ZIndex = 11
+ResizeHandle.Parent = MainFrame
+
+local ResizeLine = Instance.new("Frame")
+ResizeLine.Size = UDim2.new(1, 0, 1, 0)
+ResizeLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ResizeLine.BackgroundTransparency = 0.4
+ResizeLine.BorderSizePixel = 0
+ResizeLine.Parent = ResizeHandle
+
+local ResizeCorner = Instance.new("UICorner")
+ResizeCorner.CornerRadius = UDim.new(0, 3)
+ResizeCorner.Parent = ResizeLine
+
+local resizing = false
+local resizeStartPos, resizeStartSize
+
+ResizeHandle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		resizing = true
+		resizeStartPos = input.Position
+		resizeStartSize = MainFrame.Size
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then resizing = false end
+		end)
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - resizeStartPos
+		local newWidth = math.max(350, resizeStartSize.X.Offset + delta.X)
+		local newHeight = math.max(200, resizeStartSize.Y.Offset + delta.Y)
+		BaseWidth = newWidth
+		BaseHeight = newHeight
+		MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+	end
+end)
+
+local PromptOverlay = Instance.new("Frame")
+PromptOverlay.Name = "PromptOverlay"
+PromptOverlay.Size = UDim2.new(1, 0, 1, 0)
+PromptOverlay.BackgroundColor3 = Color3.fromRGB(5, 5, 8)
+PromptOverlay.BackgroundTransparency = 1
+PromptOverlay.ZIndex = 100
+PromptOverlay.Visible = false
+PromptOverlay.Parent = MainFrame
+
+local PromptBox = Instance.new("Frame")
+PromptBox.Name = "PromptBox"
+PromptBox.Size = UDim2.new(0, 280, 0, 140)
+PromptBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+PromptBox.AnchorPoint = Vector2.new(0.5, 0.5)
+PromptBox.BackgroundColor3 = Color3.fromRGB(16, 16, 24)
+PromptBox.BorderSizePixel = 0
+PromptBox.Parent = PromptOverlay
+
+local PromptCorner = Instance.new("UICorner")
+PromptCorner.CornerRadius = UDim.new(0, 6)
+PromptCorner.Parent = PromptBox
+
+local PromptStroke = Instance.new("UIStroke")
+PromptStroke.Thickness = 1.5
+PromptStroke.Color = AccentColor
+PromptStroke.Parent = PromptBox
+
+local PromptTitle = Instance.new("TextLabel")
+PromptTitle.Size = UDim2.new(1, 0, 0, 45)
+PromptTitle.BackgroundTransparency = 1
+PromptTitle.Text = "XÁC NHẬN TẮT HUB"
+PromptTitle.TextColor3 = Color3.fromRGB(240, 240, 245)
+PromptTitle.Font = Enum.Font.GothamBold
+PromptTitle.TextSize = 14
+PromptTitle.Parent = PromptBox
+
+local PromptDesc = Instance.new("TextLabel")
+PromptDesc.Position = UDim2.new(0, 15, 0, 40)
+PromptDesc.Size = UDim2.new(1, -30, 0, 40)
+PromptDesc.BackgroundTransparency = 1
+PromptDesc.Text = "Bạn có chắc chắn muốn tắt và xóa hoàn toàn giao diện Script Hub này không?"
+PromptDesc.TextColor3 = Color3.fromRGB(160, 165, 175)
+PromptDesc.Font = Enum.Font.SourceSans
+PromptDesc.TextSize = 13
+PromptDesc.TextWrapped = true
+PromptDesc.Parent = PromptBox
+
+local DeleteBtn = Instance.new("TextButton")
+DeleteBtn.Name = "DeleteBtn"
+DeleteBtn.Size = UDim2.new(0, 110, 0, 32)
+DeleteBtn.Position = UDim2.new(0, 20, 1, -45)
+DeleteBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+DeleteBtn.Text = "Xóa"
+DeleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DeleteBtn.Font = Enum.Font.SourceSansBold
+DeleteBtn.TextSize = 13
+DeleteBtn.Parent = PromptBox
+
+local DeleteCorner = Instance.new("UICorner")
+DeleteCorner.CornerRadius = UDim.new(0, 4)
+DeleteCorner.Parent = DeleteBtn
+
+local CancelBtn = Instance.new("TextButton")
+CancelBtn.Name = "CancelBtn"
+CancelBtn.Size = UDim2.new(0, 110, 0, 32)
+CancelBtn.Position = UDim2.new(1, -130, 1, -45)
+CancelBtn.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
+CancelBtn.Text = "Hủy"
+CancelBtn.TextColor3 = Color3.fromRGB(200, 205, 215)
+CancelBtn.Font = Enum.Font.SourceSansBold
+CancelBtn.TextSize = 13
+CancelBtn.Parent = PromptBox
+
+local CancelCorner = Instance.new("UICorner")
+CancelCorner.CornerRadius = UDim.new(0, 4)
+CancelCorner.Parent = CancelBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+	-- Phát hiệu ứng âm thanh LeaveHub tức thì bằng luồng Thread riêng biệt
+	playSoundInstant(LeaveHubSFX)
+	
+	PromptOverlay.Visible = true
+	TweenService:Create(PromptOverlay, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0.4}):Play()
+	PromptBox.Size = UDim2.new(0, 240, 0, 120)
+	TweenService:Create(PromptBox, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 140)}):Play()
+end)
+
+CancelBtn.MouseButton1Click:Connect(function()
+	TweenService:Create(PromptOverlay, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+	local boxTween = TweenService:Create(PromptBox, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 240, 0, 120)})
+	boxTween.Completed:Connect(function()
+		PromptOverlay.Visible = false
+	end)
+	boxTween:Play()
+end)
+
+DeleteBtn.MouseButton1Click:Connect(function()
+	HubGui:Destroy()
+	ScreenGuiToggle:Destroy()
+end)
+
+local function createTab(imageName, order)
+	local TabWrapper = Instance.new("Frame")
+	TabWrapper.Name = "TabWrapper_" .. order
+	TabWrapper.Size = UDim2.new(0, 36, 0, 36)
+	TabWrapper.BackgroundTransparency = 1
+	TabWrapper.LayoutOrder = order
+	TabWrapper.ZIndex = 2
+	TabWrapper.Parent = TabContainer
+
+	local GlowRing = Instance.new("Frame")
+	GlowRing.Name = "GlowRing"
+	GlowRing.AnchorPoint = Vector2.new(0.5, 0.5)
+	GlowRing.Position = UDim2.new(0.5, 0, 0.5, 0)
+	GlowRing.Size = UDim2.new(0, 0, 0, 0)
+	GlowRing.BackgroundTransparency = 0
+	GlowRing.Visible = false
+	GlowRing.ZIndex = 2
+	GlowRing.Parent = TabWrapper
+
+	local RingCorner = Instance.new("UICorner")
+	RingCorner.CornerRadius = UDim.new(1, 0)
+	RingCorner.Parent = GlowRing
+
+	local RingGradient = Instance.new("UIGradient")
+	RingGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, AccentColor),
+		ColorSequenceKeypoint.new(0.5, SecondaryColor),
+		ColorSequenceKeypoint.new(1, AccentColor)
+	})
+	RingGradient.Parent = GlowRing
+
+	task.spawn(function()
+		while true do
+			for i = 0, 360, 4 do
+				if GlowRing.Visible then
+					RingGradient.Rotation = i
+				end
+				task.wait(0.02)
+			end
+		end
+	end)
+
+	local TabButton = Instance.new("ImageButton")
+	TabButton.Name = "TabButton"
+	TabButton.AnchorPoint = Vector2.new(0.5, 0.5)
+	TabButton.Position = UDim2.new(0.5, 0, 0.5, 0)
+	TabButton.Size = UDim2.new(0, 24, 0, 24)
+	TabButton.BackgroundTransparency = 1
+	TabButton.Image = getcustomasset(imageName)
+	TabButton.ImageColor3 = Color3.fromRGB(130, 135, 150)
+	TabButton.ScaleType = Enum.ScaleType.Fit
+	TabButton.ZIndex = 3
+	TabButton.Parent = TabWrapper
+
+	local TabPage = Instance.new("ScrollingFrame")
+	TabPage.Name = "Page_" .. order
+	TabPage.Size = UDim2.new(1, 0, 1, 0)
+	TabPage.BackgroundTransparency = 1
+	TabPage.BorderSizePixel = 0
+	TabPage.ScrollBarThickness = 2
+	TabPage.Visible = false
+	TabPage.ZIndex = 2
+	TabPage.Parent = ContentContainer
+
+	local PageLayout = Instance.new("UIListLayout")
+	PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	PageLayout.Padding = UDim.new(0, 6)
+	PageLayout.Parent = TabPage
+
+	TabButton.MouseButton1Click:Connect(function()
+		-- Phát âm thanh chọn tab instant không delay
+		playSoundInstant(TabPickSFX)
+
+		for _, page in ipairs(ContentContainer:GetChildren()) do
+			if page:IsA("ScrollingFrame") then page.Visible = false end
+		end
+		for _, wrapper in ipairs(TabContainer:GetChildren()) do
+			if wrapper:IsA("Frame") then
+				wrapper.TabButton.ImageColor3 = Color3.fromRGB(130, 135, 150)
+				wrapper.GlowRing.Visible = false
+				wrapper.GlowRing.Size = UDim2.new(0, 0, 0, 0)
+			end
+		end
+		TabPage.Visible = true
+		TabButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+		
+		GlowRing.Visible = true
+		TweenService:Create(GlowRing, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+	end)
+	return TabPage, GlowRing, TabButton
+end
+
+local Page1, Ring1, Btn1 = createTab("logo4.png", 1)
+local Page2, Ring2, Btn2 = createTab("logo2.png", 2)
+local Page3, Ring3, Btn3 = createTab("logo6.png", 3)
+local Page4, Ring4, Btn4 = createTab("logo1.png", 4)
+local Page5, Ring5, Btn5 = createTab("logo5.png", 5)
+local Page6, Ring6, Btn6 = createTab("logo3.png", 6)
+
+if ContentContainer:FindFirstChild("Page_1") then
+	ContentContainer.Page_1.Visible = true
+	Btn1.ImageColor3 = Color3.fromRGB(255, 255, 255)
+	Ring1.Visible = true
+	Ring1.Size = UDim2.new(1, 0, 1, 0)
+end
+
+local IsMinimized = false
+
+local function toggleMenu(forceState)
+	local targetState = forceState
+	if targetState == nil then
+		targetState = not MainFrame.Visible
+	end
+	
+	if targetState == true then
+		MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+		MainFrame.Visible = true
+		
+		if IsMinimized then
+			MainFrame.Size = UDim2.new(0, BaseWidth, 0, 0)
+			local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, BaseWidth, 0, 45)
+			})
+			openTween:Play()
+		else
+			MainFrame.Size = UDim2.new(0, BaseWidth, 0, 0)
+			local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, BaseWidth, 0, BaseHeight)
+			})
+			openTween:Play()
+			Container.Size = UDim2.new(1, 0, 1, -45)
+		end
+	else
+		local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+			Size = UDim2.new(0, BaseWidth, 0, 0)
+		})
+		closeTween.Completed:Connect(function()
+			MainFrame.Visible = false
+		end)
+		closeTween:Play()
+	end
+end
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+	IsMinimized = not IsMinimized
+	if IsMinimized then
+		local comp1 = TweenService:Create(Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 0)})
+		local comp2 = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, BaseWidth, 0, 45)})
+		comp1:Play()
+		comp2:Play()
+		MinimizeBtn.Text = "➕"
+	else
+		local exp1 = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, BaseWidth, 0, BaseHeight)})
+		local exp2 = TweenService:Create(Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 1, -45)})
+		exp1:Play()
+		exp2:Play()
+		MinimizeBtn.Text = "➖"
+	end
+end)
+
+local ToggleButton = Instance.new("ImageButton")
+local Corner = Instance.new("UICorner")
+local Border = Instance.new("UIStroke")
+
+ToggleButton.Name = "LogoToggle"
+ToggleButton.Parent = ScreenGuiToggle
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+ToggleButton.Size = UDim2.new(0, 60, 0, 60)
+ToggleButton.Image = getcustomasset("TphatHubLogo.png")
+ToggleButton.AnchorPoint = Vector2.new(0.5, 0.5)
+
+Corner.Name = "LogoCorner"
+Corner.Parent = ToggleButton
+Corner.CornerRadius = UDim.new(0, 30)
+
+Border.Name = "LogoBorder"
+Border.Parent = ToggleButton
+Border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+Border.Color = AccentColor
+Border.Thickness = 2
+Border.Transparency = 0.5
+Border.LineJoinMode = Enum.LineJoinMode.Round
+
+local Toggled = false
+local tweenInfoClick = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local tweenInfoRelease = TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+local function playClickAnimation()
+	local shrink = TweenService:Create(ToggleButton, tweenInfoClick, {Size = UDim2.new(0, 50, 0, 50)})
+	local expand = TweenService:Create(ToggleButton, tweenInfoRelease, {Size = UDim2.new(0, 60, 0, 60)})
+	shrink:Play()
+	shrink.Completed:Connect(function()
+		expand:Play()
+	end)
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+	Toggled = not Toggled
+	playClickAnimation()
+	
+	if Toggled then
+		ToggleButton.ImageColor3 = AccentColor
+		Border.Color = SecondaryColor
+	else
+		ToggleButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+		Border.Color = AccentColor
+	end
+	
+	if IsMinimized and Toggled then
+		IsMinimized = false
+		MainFrame.Size = UDim2.new(0, BaseWidth, 0, BaseHeight)
+		Container.Size = UDim2.new(1, 0, 1, -45)
+		MinimizeBtn.Text = "➖"
+	end
+	
+	toggleMenu(Toggled)
+end)
+
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	ToggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+ToggleButton.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = ToggleButton.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+local function createFeatureElements(parentPage, scriptTitle, scriptDesc)
+	local ItemFrame = Instance.new("Frame")
+	ItemFrame.Size = UDim2.new(1, -10, 0, 45)
+	ItemFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+	ItemFrame.BackgroundTransparency = 0.35
+	ItemFrame.BorderSizePixel = 0
+	ItemFrame.ZIndex = 3
+	ItemFrame.Parent = parentPage
+
+	local ItemCorner = Instance.new("UICorner")
+	ItemCorner.CornerRadius = UDim.new(0, 4)
+	ItemCorner.Parent = ItemFrame
+
+	local ItemStroke = Instance.new("UIStroke")
+	ItemStroke.Thickness = 1
+	ItemStroke.Color = Color3.fromRGB(55, 55, 65)
+	ItemStroke.Parent = ItemFrame
+
+	local TextTitle = Instance.new("TextLabel")
+	TextTitle.Size = UDim2.new(0.7, 0, 0.5, 0)
+	TextTitle.Position = UDim2.new(0, 10, 0, 4)
+	TextTitle.BackgroundTransparency = 1
+	TextTitle.Text = scriptTitle
+	TextTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+	TextTitle.Font = Enum.Font.SourceSansBold
+	TextTitle.TextSize = 14
+	TextTitle.TextXAlignment = Enum.TextXAlignment.Left
+	TextTitle.ZIndex = 3
+	TextTitle.Parent = ItemFrame
+
+	local TextDesc = Instance.new("TextLabel")
+	TextDesc.Size = UDim2.new(0.7, 0, 0.4, 0)
+	TextDesc.Position = UDim2.new(0, 10, 0.5, 2)
+	TextDesc.BackgroundTransparency = 1
+	TextDesc.Text = scriptDesc
+	TextDesc.TextColor3 = Color3.fromRGB(200, 205, 215)
+	TextDesc.Font = Enum.Font.SourceSans
+	TextDesc.TextSize = 11
+	TextDesc.TextXAlignment = Enum.TextXAlignment.Left
+	TextDesc.ZIndex = 3
+	TextDesc.Parent = ItemFrame
+
+	local ExecBtn = Instance.new("TextButton")
+	ExecBtn.Size = UDim2.new(0.2, 0, 0.6, 0)
+	ExecBtn.Position = UDim2.new(0.78, 0, 0.2, 0)
+	ExecBtn.BackgroundColor3 = DarkAccent
+	ExecBtn.Text = "Execute"
+	ExecBtn.TextColor3 = AccentColor
+	ExecBtn.Font = Enum.Font.SourceSansBold
+	ExecBtn.TextSize = 12
+	ExecBtn.ZIndex = 3
+	ExecBtn.Parent = ItemFrame
+
+	local BtnCorner = Instance.new("UICorner")
+	BtnCorner.CornerRadius = UDim.new(0, 4)
+	BtnCorner.Parent = ExecBtn
+
+	local BtnStroke = Instance.new("UIStroke")
+	BtnStroke.Thickness = 1
+	BtnStroke.Color = AccentColor
+	BtnStroke.Parent = ExecBtn
+
+	ExecBtn.MouseButton1Click:Connect(function()
+		TweenService:Create(ExecBtn, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+		task.wait(0.1)
+		TweenService:Create(ExecBtn, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundColor3 = DarkAccent, TextColor3 = AccentColor}):Play()
+	end)
+end
+
+for i = 1, 15 do
+	createFeatureElements(Page1, "Premium Core Feature " .. i, "Provides direct memory optimization pipeline.")
+	createFeatureElements(Page2, "Game Logic Hack " .. i, "Bypasses standard runtime cycle calculation variables.")
+	createFeatureElements(Page3, "Automation Engine Tool " .. i, "Executes systematic virtual iterative operations loops.")
+end
