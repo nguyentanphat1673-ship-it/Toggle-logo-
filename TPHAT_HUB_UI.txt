@@ -864,3 +864,98 @@ SaveInstanceBtn.MouseButton1Click:Connect(function()
 		end)
 	end)
 end)
+
+-- =================================================================================
+-- PHẦN KHỞI TẠO PREVIEW NGƯỜI CHƠI TRÊN TAB LOGO3 (PAGE6)
+-- =================================================================================
+
+-- 1. Lấy thông tin Thumbnail từ Roblox API
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size180x180
+local content, isReady = Players:GetUserThumbnailAsync(LocalPlayer.UserId, thumbType, thumbSize)
+
+-- 2. Tính toán ngày tạo tài khoản và số tuổi của nick dựa trên AccountAge
+local function getCreationDate()
+	local accountAgeInDays = LocalPlayer.AccountAge
+	local currentTimeInSeconds = os.time()
+	local creationTimeInSeconds = currentTimeInSeconds - (accountAgeInDays * 86400)
+	return os.date("%d/%m/%Y", creationTimeInSeconds)
+end
+
+local creationDateStr = getCreationDate()
+local accountAgeStr = tostring(LocalPlayer.AccountAge) .. " ngày"
+
+-- 3. Tạo Layout chính để căn giữa các thành phần trong Page6
+local PreviewContainer = Instance.new("Frame")
+PreviewContainer.Name = "PreviewContainer"
+PreviewContainer.Size = UDim2.new(1, 0, 1, 0)
+PreviewContainer.BackgroundTransparency = 1
+PreviewContainer.ZIndex = 3
+PreviewContainer.Parent = Page6
+
+local PreviewLayout = Instance.new("UIListLayout")
+PreviewLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PreviewLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+PreviewLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+PreviewLayout.Padding = UDim.new(0, 10)
+PreviewLayout.Parent = PreviewContainer
+
+-- 4. Thành phần 1: Ảnh đại diện tròn có viền màu vàng (AccentColor)
+local AvatarLabel = Instance.new("ImageLabel")
+AvatarLabel.Name = "PlayerAvatar"
+AvatarLabel.Size = UDim2.new(0, 85, 0, 85) -- Kích thước vừa vặn với Hub mobile
+AvatarLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+AvatarLabel.BorderSizePixel = 0
+AvatarLabel.Image = isReady and content or "rbxassetid://0"
+AvatarLabel.ZIndex = 4
+AvatarLabel.LayoutOrder = 1
+AvatarLabel.Parent = PreviewContainer
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(1, 0) -- Cắt thành hình tròn hoàn hảo
+AvatarCorner.Parent = AvatarLabel
+
+local AvatarStroke = Instance.new("UIStroke")
+AvatarStroke.Thickness = 2.5
+AvatarStroke.Color = AccentColor -- Sử dụng màu vàng chủ đạo của Hub ông tạo
+AvatarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+AvatarStroke.Parent = AvatarLabel
+
+-- 5. Thành phần 2: Nhãn hiển thị UID người chơi
+local UidLabel = Instance.new("TextLabel")
+UidLabel.Name = "UidLabel"
+UidLabel.Size = UDim2.new(0.9, 0, 0, 20)
+UidLabel.BackgroundTransparency = 1
+UidLabel.Text = "UID: " .. tostring(LocalPlayer.UserId)
+UidLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+UidLabel.Font = Enum.Font.SourceSansBold
+UidLabel.TextSize = 14
+UidLabel.ZIndex = 4
+UidLabel.LayoutOrder = 2
+UidLabel.Parent = PreviewContainer
+
+-- 6. Thành phần 3: Nhãn hiển thị Ngày tạo tài khoản
+local CreateDateLabel = Instance.new("TextLabel")
+CreateDateLabel.Name = "CreateDateLabel"
+CreateDateLabel.Size = UDim2.new(0.9, 0, 0, 20)
+CreateDateLabel.BackgroundTransparency = 1
+CreateDateLabel.Text = "Ngày tạo: " .. creationDateStr
+CreateDateLabel.TextColor3 = Color3.fromRGB(200, 205, 215)
+CreateDateLabel.Font = Enum.Font.SourceSans
+CreateDateLabel.TextSize = 13
+CreateDateLabel.ZIndex = 4
+CreateDateLabel.LayoutOrder = 3
+CreateDateLabel.Parent = PreviewContainer
+
+-- 7. Thành phần 4: Nhãn hiển thị Tuổi tài khoản (Số ngày hoạt động)
+local AgeLabel = Instance.new("TextLabel")
+AgeLabel.Name = "AgeLabel"
+AgeLabel.Size = UDim2.new(0.9, 0, 0, 20)
+AgeLabel.BackgroundTransparency = 1
+AgeLabel.Text = "Tuổi tài khoản: " .. accountAgeStr
+AgeLabel.TextColor3 = Color3.fromRGB(160, 165, 175)
+AgeLabel.Font = Enum.Font.SourceSansItalic
+AgeLabel.TextSize = 13
+AgeLabel.ZIndex = 4
+AgeLabel.LayoutOrder = 4
+AgeLabel.Parent = PreviewContainer
