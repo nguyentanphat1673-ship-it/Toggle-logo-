@@ -822,22 +822,40 @@ local function createFeatureElements(parentPage, scriptTitle, scriptDesc)
 		TweenService:Create(ExecBtn, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = AccentColor, TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 		task.wait(0.1)
 		TweenService:Create(ExecBtn, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundColor3 = DarkAccent, TextColor3 = AccentColor}):Play()
-		
-		if parentPage == Page2 then
-			if HubGui then HubGui:Destroy() end
-			if ScreenGuiToggle then ScreenGuiToggle:Destroy() end
-			
-			task.spawn(function()
-				pcall(function()
-					loadstring(game:HttpGet("https://raw.githubusercontent.com/nguyentanphat1673-ship-it/Tphat_Save_Instance/main/Save_Instance.txt"))()
-				end)
-			end)
-		end
 	end)
+	
+	return ExecBtn
 end
 
-for i = 1, 15 do
+-- Tạo các nút tự động cho Tab 1 và Tab 3 (Nếu bro thích giữ)
+for i = 1, 5 do
 	createFeatureElements(Page1, "Premium Core Feature " .. i, "Provides direct memory optimization pipeline.")
-	createFeatureElements(Page2, "Game Logic Hack " .. i, "Bypasses standard runtime cycle calculation variables.")
 	createFeatureElements(Page3, "Automation Engine Tool " .. i, "Executes systematic virtual iterative operations loops.")
 end
+
+-- TẠO RIÊNG NÚT SAVE INSTANCE CHO TAB 2 (PAGE2)
+local SaveInstanceBtn = createFeatureElements(Page2, "Save Instance", "Bấm vào đây để lưu Map / Instance game hiện tại.")
+
+SaveInstanceBtn.MouseButton1Click:Connect(function()
+	if HubGui then HubGui:Destroy() end
+	if ScreenGuiToggle then ScreenGuiToggle:Destroy() end
+	
+	task.spawn(function()
+		pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/nguyentanphat1673-ship-it/Tphat_Save_Instance/main/Save_Instance.txt"))()
+		end)
+	end)
+end)
+
+local SaveInstanceBtn = createFeatureElements(Page2, "Save Instance", "Bấm vào đây để lưu Map / Instance game hiện tại.")
+
+SaveInstanceBtn.MouseButton1Click:Connect(function()
+	if HubGui then HubGui:Destroy() end
+	if ScreenGuiToggle then ScreenGuiToggle:Destroy() end
+	
+	task.spawn(function()
+		pcall(function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/nguyentanphat1673-ship-it/Tphat_Save_Instance/main/Save_Instance.txt"))()
+		end)
+	end)
+end)
