@@ -847,6 +847,11 @@ SaveInstanceBtn.MouseButton1Click:Connect(function()
 	end)
 end)
 
+for i = 1, 5 do
+	createFeatureElements(Page1, "Premium Core Feature " .. i, "Provides direct memory optimization pipeline.")
+	createFeatureElements(Page3, "Automation Engine Tool " .. i, "Executes systematic virtual iterative operations loops.")
+end
+
 local SaveInstanceBtn = createFeatureElements(Page2, "Save Instance", "Bấm vào đây để lưu Map / Instance game hiện tại.")
 
 SaveInstanceBtn.MouseButton1Click:Connect(function()
